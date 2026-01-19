@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBT Practical</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- PART A: COURSE REGISTRATION -->
+  <h2>Course Registration</h2>
+
+  <form id="courseForm">
+    <input id="studentName" placeholder="Student Name" required>
+    <input id="matricNumber" placeholder="LCU/UG/23/20881" required>
+    <input id="courseCode" placeholder="Course Code" required>
+    <input id="courseTitle" placeholder="Course Title" required>
+    <button type="submit">Register Course</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Matric No</th>
+        <th>Code</th>
+        <th>Title</th>
+      </tr>
+    </thead>
+    <tbody id="courseList"></tbody>
+  </table>
+
+  <hr>
+
+  <!-- PART B: API FETCH -->
+  <h2>GitHub User Fetcher</h2>
+
+  <button id="refreshBtn">Refresh Users</button>
+
+  <p id="loading" class="hidden">Loading data… 🔄</p>
+  <p id="error" class="hidden" style="color:red;">Something went wrong ❌</p>
+
+  <div id="user-list"></div>
+
+  <script>
+    /* ================= PART A LOGIC ================= */
+
+    const courseForm = document.getElementById("courseForm");
+    const courseList = document.getElementById("courseList");
+
+    // Updated matric pattern: LCU/UG/23/20881
+    const matricPattern = /^LCU\/UG\/\d{2}\/\d{5}$/;
+
+    // Load saved courses on page reload
+    window.addEventListener("load", () => {
+      const savedCourses = JSON.parse(localStorage.getItem("courses")) || [];
+      savedCourses.forEach(addCourseToTable);
+      fetchUsers(); // load API data
+    });
+
+    courseForm.addEventListener("submit", e => {
+      e.preventDefault();
+
+      if (!matricPattern.test(matricNumber.value)) {
+        alert("Invalid Matric Number format (example: LCU/UG/23/20881)");
+        return;
+      }
+
+      const course = {
+        name: studentName.value,
+        matric: matricNumber.value,
+        code: courseCode.value,
+        title: courseTitle.value
+      };
+
+      const courses = JSON.parse(localStorage.getItem("courses") || "[]");
+      courses.push(course);
+      localStorage.setItem("courses", JSON.stringify(courses));
+
+      addCourseToTable(course);
+      courseForm.reset();
+    });
+
+    function addCourseToTable(course) {
+      courseList.innerHTML += `
+        <tr>
+          <td>${course.name}</td>
+          <td>${course.matric}</td>
+          <td>${course.code}</td>
+          <td>${course.title}</td>
+        </tr>`;
+    }
+
+    /* ================= PART B LOGIC ================= */
+
+    const API_URL = "https://api.github.com/users";
+    const userList = document.getElementById("user-list");
+    const loadingText = document.getElementById("loading");
+    const errorText = document.getElementById("error");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    async function fetchUsers() {
+      userList.innerHTML = "";
+      loadingText.classList.remove("hidden");
+      errorText.classList.add("hidden");
+
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error();
+
+        const data = await response.json();
+        loadingText.classList.add("hidden");
+
+        data.slice(0, 5).forEach(user => {
+          userList.innerHTML += `
+            <div class="card">
+              <strong>${user.login}</strong><br>
+              <img src="${user.avatar_url}" width="50"><br>
+              <a href="${user.html_url}" target="_blank">View Profile</a>
+            </div>`;
+        });
+      } catch {
+        loadingText.classList.add("hidden");
+        errorText.classList.remove("hidden");
+      }
+    }
+
+    refreshBtn.addEventListener("click", fetchUsers);
+  </script>
+
+</body>
+</html>
